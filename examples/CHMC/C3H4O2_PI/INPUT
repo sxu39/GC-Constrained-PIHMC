@@ -1,0 +1,19 @@
+INPUT_PARAMETERS
+#Parameters (General)
+DP_model            C2H3_compress.pb
+steps               200000
+#Parameters (System)
+T                   79
+ntype               2
+element_type        C H
+reaction_coordinate 1.20
+constraint_atom     1 2 0
+#Parameters (Constrained Hamiltonian Monte Carlo)
+Delta_t             2.4
+HMC_proportion      0.5
+HMC_phi_step        0.3927
+#Parameters (Path Integral)
+P                   30
+J                   2
+N_bead              1
+bead_index          2

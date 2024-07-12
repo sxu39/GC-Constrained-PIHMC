@@ -1,0 +1,15 @@
+INPUT_PARAMETERS
+#Parameters (General)
+potential           LJ
+steps               100000
+#Parameters (System)
+T                   842827
+ntype               1
+element_type        Ar
+RC_type             Distance
+reaction_coordinate 0.95
+constraint_atom     62 63
+#Parameters (Constrained Hamiltonian Monte Carlo)
+radial              0.1
+Delta_t             0.02
+HMC_proportion      0.95

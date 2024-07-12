@@ -1,0 +1,14 @@
+INPUT_PARAMETERS
+#Parameters (General)
+DP_model            C2H3_compress_0.pb
+calculation         HMC
+steps               200000
+OUTPUT              ke pe etotal
+#Parameters (System)
+T                   79
+ntype               2
+element_type        C H
+#Parameters (Hamiltonian Monte Carlo)
+Delta_t             2.8
+#Parameters (Model Deviation)
+model_devi_models   C2H3_compress_0.pb C2H3_compress_1.pb C2H3_compress_2.pb C2H3_compress_3.pb

@@ -1,0 +1,15 @@
+INPUT_PARAMETERS
+#Parameters (General)
+work_path           C3H4O2
+potential           VASP
+dump                1
+steps               2000
+#Parameters (System)
+T                   300
+ntype               3
+element_type        C H O
+reaction_coordinate 0.69
+constraint_atom     7 6 8
+#Parameters (Constrained Hamiltonian Monte Carlo)
+Delta_t             2.4
+HMC_proportion      0.5
