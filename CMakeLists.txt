@@ -11,11 +11,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 include_directories(include)
 
-include_directories(/home/KawaSaki/software/deepmd-kit/2.2.1_cuda_10.2/include)
+include_directories(${deepmd_root}/include)
 
-link_directories(/usr/local/lib64)
-
-link_directories(/home/KawaSaki/software/deepmd-kit/2.2.1_cuda_10.2/lib)
+link_directories(${deepmd_root}/lib)
 
 aux_source_directory(source CPP_LIST)
 

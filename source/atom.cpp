@@ -1,23 +1,12 @@
-//
-// Created by Jin Bin on 2021/11/08.
-//
-
 #include "atom.h"
+using namespace cpihmc;
 
-atom::atom():type(normal){}
-
-void atom::force_initialize(){
-    f.x = 0;
-    f.y = 0;
-    f.z = 0;
+void cpihmc::bead::back_centroid()
+{
+    vec3<prec_t> displacement = BeadAtom->Coord;
+    prec_t P_inv = 1/(prec_t)Coords.size();
+    for (const auto &Coord : Coords)
+        displacement -= Coord * P_inv;
+    for (auto &Coord : Coords)
+        Coord += displacement;
 }
-
-atom::~atom() = default;
-
-bead::bead(atom *Atom, int P, double mass):bead_atom(Atom), mass(mass), kinetic_energy(0){
-    r.resize(P);
-    for (int i = 0 ; i < P ; ++i)
-        r[i] = bead_atom->r;
-}
-
-bead::~bead() = default;

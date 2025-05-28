@@ -1,419 +1,286 @@
 # __CPIHMC__
-Documents for __CPIHMC__ code version _0.1.8beta_.
+Documents for __CPIHMC__ code version _0.1.0alpha_.
 
 # __Functions__
-MD, HMC, CHMC, CMC simulations with different types of potential under a _canonical_ or _grand canonical_ ensemble condition. Besides, nuclear quantum effects can be considered through the path integral involved in the method.
+MD, HMC, CHMC simulations with different types of potential under a _canonical_ or _grand canonical_ ensemble condition. Besides, nuclear quantum effects can be considered through the path integral formalism involved in the method.
 
-1. Potential energy and forces can be calculated by _DP_, _VASP_ and _ABACUS_.
-
-2. For "__difference__" reaction coordinate, CHMC, CMC, CPIHMC, CPIMC methods are supported.
-
-3. For "__distance__" reaction coordinate, CHMC, CMC, CPIHMC methods are supported.
-4. For the _grand canonical_ ensemble, only HMC, CHMC, CPIHMC is supported.
-5. Model deviation is only available for the potential energy and forces calculated by _DP_. Meanwhile, except for the simulation under a _grand canonical_ ensemble condition using the discrete DP potentials, all situations can be performed in a model deviation mode.
+1. Potential energy and forces can be calculated by _DP_, _VASP_ and _ABACUS_. (Only _DP_ is supported for the moment.)
+2. For the _grand canonical_ ensemble, only CHMC, CPIHMC is supported.
+3. Model deviation is only available for the potential energy and forces calculated by _DP_. Meanwhile, all situations can be performed in a model deviation mode.
 
 # __Units__
 ### __Physical Quantities__
 - __mass:__ u, $1$ u = $1.66053886\times 10^{-27}$ kg
 
-- __length:__ Bohr, $1$ Bohr = $0.529\AA$
+- __length:__ Bohr, $1$ Bohr = $0.529177\AA$
 
 - __time:__ fs
 
-- __energy:__ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}$, $1$ J = $2.1520\times 10^{17}$ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}$, $1$ eV = $0.03448$ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}$
+- __energy:__ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}$, $1$ J = $2.15055\times 10^{17}$ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}$, $1$ eV = $0.0344556$ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}$
 
-- __force:__ u $\cdot$ Bohr $\cdot$ fs $^{-2}$, $1$ eV/$\AA$ = $0.01824$ u $\cdot$ Bohr $\cdot$ fs $^{-2}$
+- __force:__ u $\cdot$ Bohr $\cdot$ fs $^{-2}$, $1$ eV/$\AA$ = $0.0182331$ u $\cdot$ Bohr $\cdot$ fs $^{-2}$
 ### __Physical Constants__
-- _k_ = $2.97116\times 10^{-6}$ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}\cdot$ K $^{-1}$
+- $k$ = $2.96915\times 10^{-6}$ u $\cdot$ Bohr $^2\cdot$ fs $^{-2}\cdot$ K $^{-1}$
 
-- _h_ = $0.142612$ u $\cdot$ Bohr $^2\cdot$ fs $^{-1}$
+- $h$ = $0.142497$ u $\cdot$ Bohr $^2\cdot$ fs $^{-1}$
+
+- $\hbar$ = $0.0226791$ u $\cdot$ Bohr $^2\cdot$ fs $^{-1}\cdot$ rad $^{-1}$
 
 # __Input Files__
 ## `INPUT`
 Simulation parameters should be set in __`INPUT`__, and the parameters not in the __`INPUT`__ are set to be default values. All optional parameters are listed later in this document.
 
-## __`STRU` (, `BEADS`)__
-__`STRU`__ contains the initial structure in the format of _ABACUS_. However, if necessary, the electron number of the system should be put in the beginning of __`STRU`__ by a title __ELECTRON_NUMBER__ and a following line of the electron number value.
+## `STRU` (, `BEADS`)
+__`STRU`__ contains the initial structure in the format of _ABACUS_. However, if necessary, the electron number of the system should be put in the beginning of __`STRU`__ by a title __ELECTRON_NUMBER__ with a following line of the electron number value.
 
-As for path integral, if there's a need to set different coordinates of beads at the beginning, set the centroid coordinates in __`STRU`__, and put different coordinates of beads in __`BEADS`__. For this situation, don't forget to add parameter __initial_beads__ into __`INPUT`__. The unit of coordinates in __`BEADS`__ is Bohr.
+As for __path integral__, if there's a need to set different coordinates of beads at the beginning, set the centroid coordinates in __`STRU`__, and put different coordinates of beads in __`BEADS`__. For this situation, don't forget to add the parameter __Beads_File__ into __`INPUT`__.
 
-## __(work path)__
-For the _DP_ situation, the folder isn't necessary. However, initial structure can also be put into a folder, and add the name of the folder with the parameter __work_path__ in __`INPUT`__.
+> __Attention__: The unit of coordinates in __`BEADS`__ is Bohr.
 
-For the _VASP_ situation, the folder is expected to contain input files of _VASP_, __`INCAR`, `KPOINTS`, `POTCAR`__ and any other necessary files, and the initial structure.
-
-For the _ABACUS_ situation, the folder is expected to contain input files of _ABACUS_, __`INPUT`, `KPT`__ and any other necessary files, electron density file, __`SPIN1_CHG`__, and the initial structure.
-
-## __(DP potential)__
-For the _DP_ situation, don't forget to prepare a DP potential and refer to the potential with the parameter __DP_model__ in __`INPUT`__. However, for the _grand canonical_ ensemble, several DP potentials with different electron numbers should be prepared, put in the same potential, and named with the same prefix (refered by the parameter __DP_model_prefix__ in __`INPUT`__) following by the corresponding electron numbers.
+# __(DP potential)__
+For the _DP_ situation, don't forget to prepare a DP potential and refer to the potential with the parameter __Deep_Pot_Model__ in __`INPUT`__.
 
 # Output Files
 ### __`ALL_INPUT`__
 The value of all parameters used in the simulation.
 
-### __`energy.dat`__
-Different physical quantities for each step.
+### __`PHY_QUANT`__
+Selected physical quantities for each several step(s). The output interval can be set by the paramter __Phy_Quant_Intvl__ in __`INPUT`__.
 
 ### __`ALL_STRU`__
 Dumped structures along the simulation process.
 
-### __(`model_devi.out`)__
-Model deviation results of virials and forces between different _DP_ potentials. Only output in the model deviation mode.
+### __(`MODEL_DEVI`)__
+Model deviation results of virials and forces between different _DP_ potentials. Only output in the __model deviation__ mode.
 
-# Examples
-### __MD simulation of C<sub>2</sub>H<sub>3</sub>__
-MD simulation of C<sub>2</sub>H<sub>3</sub> under 79 K with a time interval 0.1 fs for 10000 steps.
-
-_input files:_ [`INPUT`](./examples/MD/C2H3/INPUT), [`STRU`](./examples/MD/C2H3/STRU), `C2H3_compress.pb`
-
----
-### __HMC simulation of C<sub>2</sub>H<sub>3</sub>__
-HMC simulation of C<sub>2</sub>H<sub>3</sub> under 79 K for 200,000 steps.
-
-_input files:_ [`INPUT`](./examples/HMC/C2H3/INPUT), `STRU`, `C2H3_compress.pb`
-
----
-### __HMC simulation of C<sub>2</sub>H<sub>3</sub> in model deviation mode__
-HMC simulation of C<sub>2</sub>H<sub>3</sub> under 79 K for 200,000 steps with model deviation on four different _DP_ potentials.
-
-_input files:_ [`INPUT`](./examples/HMC/C2H3_model_devi/INPUT), `STRU`, `C2H3_compress_{0..3}.pb`
-
----
-### __CHMC simulation of C<sub>2</sub>H<sub>3</sub>__
-Constrained HMC simulation of C<sub>2</sub>H<sub>3</sub> with the "__difference__" reaction coordinate value 0.60 Bohr under 79 K for 200,000 steps.
-
-_input files:_ [`INPUT`](./examples/CHMC/C2H3/INPUT), `STRU`, `C2H3_compress.pb`
-
----
-### __CMC simulation of C<sub>2</sub>H<sub>3</sub>__
-Constrained MC simulation of C<sub>2</sub>H<sub>3</sub> with the "__difference__" reaction coordinate value 0.60 Bohr under 79 K for 200,000 steps.
-
-_input files:_ [`INPUT`](./examples/CMC/C2H3/INPUT), `STRU`, `C2H3_compress.pb`
-
----
-### __CHMC simulation of monatomic molecule fluid system with LJ potential__
-Constrained HMC simulation of monatomic molecule fluid system with the "__distance__" reaction coordinate value 0.95 Bohr under 300 K for 100,000 steps.
-
-_input files:_ [`INPUT`](./examples/CHMC/LJ/INPUT), [`STRU`](./examples/CHMC/LJ/STRU)
-
-> __Attention__: on account of the MC part realization for "__distance__" reaction coordinate simulation, the parameter __radial__ is required.
-
----
-### __CHMC simulation of C<sub>3</sub>H<sub>4</sub>O<sub>2</sub>__
-Constrained HMC simulation of C<sub>3</sub>H<sub>4</sub>O<sub>2</sub> via _ABACUS_ with the "__difference__" reaction coordinate value 0.60 Bohr under 300 K for 2,000 steps.
-
-_input files:_ [`INPUT`](./examples/CHMC/C3H4O2_ABACUS/INPUT), `C3H4O2`/([`INPUT`](./examples/CHMC/C3H4O2_ABACUS/C3H4O2/INPUT), `KPT`, [`STRU`](./examples/CHMC/C3H4O2_ABACUS/C3H4O2/STRU), `OUT.ABACUS/SPIN1_CHG`)
-
-> __Attention__: In the `INPUT` of _ABACUS_ `start_charge file` is necessary to use electron density of the previous single point calculation.
-
----
-### __CHMC simulation of C<sub>3</sub>H<sub>4</sub>O<sub>2</sub>__
-Constrained HMC simulation of C<sub>3</sub>H<sub>4</sub>O<sub>2</sub> via _VASP_ with the "__difference__" reaction coordinate value 0.69 Bohr under 300 K for 2,000 steps.
-
-_input files:_ [`INPUT`](./examples/CHMC/C3H4O2_VASP/INPUT), `C3H4O2`/([`INCAR`](./examples/CHMC/C3H4O2_VASP/C3H4O2/INCAR), `KPOINTS`, `POTCAR`, `STRU`)
-
----
-### __HMC simulation of Pt<sub>100</sub>-H<sub>25</sub>-(H<sub>2</sub>O)<sub>36</sub>__
-HMC simulation of Pt<sub>100</sub>-H<sub>25</sub>-(H<sub>2</sub>O)<sub>36</sub> at 300 K for 100,000 steps under a _grand canonical_ ensemble condition. A DP potential involving the electron number is used. The electrochemical potential is set as -2.5 eV. A wall is set at the direction _x_ with coordinate 33 Bohr, and the masses of water are halved. 
-
-_input files:_ [`INPUT`](./examples/GCHMC/PtHH2O/INPUT), [`STRU`](./examples/GCHMC/PtHH2O/STRU), `PtHH2O.pb`
-
-> __Attention__: The electron number of the structure is put in the beginning of __`STRU`__ by a title __ELECTRON_NUMBER__ and a following line of the electron number value 0.54.
-
----
-### __CHMC simulation of Pt<sub>100</sub>-H<sub>25</sub>-(H<sub>2</sub>O)<sub>36</sub>__
-Constrained HMC simulation of Pt<sub>100</sub>-H<sub>25</sub>-(H<sub>2</sub>O)<sub>36</sub> with the "__difference__" reaction coordinate value -2.10 Bohr at 300 K for 100,000 steps under a _grand canonical_ ensemble condition. Five different DP potentials for the electron number ranging from 0.50 to 0.66 with the interval 0.04 is used. The electrochemical potential is set as -2.5 eV. A wall is set at the direction _x_ with coordinate 33 Bohr, and the masses of water are halved. 
-
-_input files:_ [`INPUT`](./examples/GCCHMC/PtHH2O/INPUT), `STRU`, `compressed_0.50.pb`, `compressed_0.54.pb`, `compressed_0.58.pb`, `compressed_0.62.pb`, `compressed_0.66.pb`
-
----
-### __CPIHMC simulation of C<sub>2</sub>H<sub>3</sub>__
-Constrained PIHMC simulation of C<sub>2</sub>H<sub>3</sub> with the "__difference__" reaction coordinate value 1.20 Bohr under 79 K for 200,000 steps. The transfering proton is splited into 30 beads, and 2 beads changes in each PI step.
-
-_input files:_ [`INPUT`](./examples/CHMC/C3H4O2_PI/INPUT), [`STRU`](./examples/CHMC/C3H4O2_PI/STRU), `C2H3_compress.pb`
-
-If there's a need to set different coordinates of beads at the beginning, put different coordinates of beads in __`BEADS`__ and add parameter __initial_beads__ into __`INPUT`__.
-
-_input files:_ [`INPUT`](./examples/CHMC/C3H4O2_PI/INPUT), [`STRU`](./examples/CHMC/C3H4O2_PI/STRU), [`BEADS`](./examples/CHMC/C3H4O2_PI/BEADS), `C2H3_compress.pb`
-
----
 # Parameters
 ### __General Settings__
-- __DP_model__
-default: graph.pb (optional)
-
-> the DP potential for the system. It's necessary when the DP potential is used for the potential energy and forces under a _canonical_ ensemble condition.
-
-- __work_path__
-default: . (optional)
-
-> the work path of _ab initio_ calculation or the folder containing initial structure. Usually, it can be omitted when using the DP potential.
-
-- __atom_file__
+- __Stru_File__
 default: STRU (optional)
 
 > the structure file. It's necessary only when you want to rename the structure file.
 
-- __out_file__
-default: energy.dat (optional)
-                    
-> the file to output different physical quantities.
-
-- __calculation__
-default: CHMC (optional)
-
-> the simulation type.
-> 
-> choices: MD, HMC, CHMC, CMC
-
-- __potential__
+- __Pot_Type__
 default: DP (optional)
 
 > the style used to obtain the potential energy and forces.
 > 
-> choices: DP, VASP, ABACUS
+> choices: DP
 
-- __OUTPUT__
-default: ke pe etotal rc mfl mfr (optional)
+- __Deep_Pot_Model__
+default: (optional)
 
-> the physical quantities to be output in the file set by __out_file__. The physical quantities can be chosen contain kinetic energy, potential energy, total energy, internal energy, reaction coordinate, electron number, derivative of potential of mean force on the left atom, derivative of potential of mean force on the right atom, derivative of potential of mean force, accumulative average of potential energy, variance of potential energy.
->
-> choices: ke pe etotal eint rc ne mfl mfr mf pe_ave pe_var
+> the DP potential for the system. It's necessary when the DP potential is used for the potential energy and forces.
 
-- __digits__
-default: ke 6 pe 6 etotal 6 rc 2 mfl 6 mfr 6 (optional)
+- __Simu_Type__
+default: CHMC (optional)
 
-> the decimal digits of physical quantity(ies) to be output in the file set by __out_file__. The format of this parameter is string-integer pair(s) constituted by a physical quantity and a number defining the decimal digit of the physical quantity, such as _ke 2_.
+> the simulation type.
+> 
+> choices: MD, HMC, CHMC
 
-- __steps__
+- __Steps__
 (required)
 
 > the number of simulation steps. A step means a sampling process between two adjacent acceptance judges.
 
-- __dump__
-default: 100 (optional)
-
-> the number of steps in the interval between two outputs of the structures.
-
 ### __System Settings__
-- __T__
+- __Temp__
 default: 300
 
 > unit: K
 >                  
 > the temperature of the simulation.
 
-- __ntype__
+- __N_Type__
 (required)
 
 > the number of element(s).
 
-- __element_type__
+- __Element_Type__
 (required)
 
-> different element type(s) at the order in DP potential. The parameters are always required but only used for the DP potential when the parameter __element_index__ is not set.
+> different element type(s) at the order in DP potential. The parameters are always required but only used for the order when the parameter __Element_Index__ is not set.
 
-- __element_index__
+- __Element_Index__
 default: / (optional)
 
 > different element index(s) used in DP potential mapping to element type(s) one-to-one. The parameter only displays when it has been set up.
 
-- __RC_type__
-default: Difference (optional)
-
-> the reaction coordinate type.
->
-> choices: Difference, Distance
-
-- __reaction_coordinate__
-default: 0
-
-> unit: Bohr
-> 
-> the reaction coordinate value used in the constrained simulations. If not set manually, it will be set as the reaction coordinate value of the initial structure.
-
-- __constraint_atom__
-default: 0 0 0
-
-> the atom indexes of the reaction coordinate. It's necessary for constrained simulations.
-> 
-> For the "__difference__" reaction coordinate, three atom indexes are required in the order $a_1$ $a_2$ $a_3$. Then the reaction coordinate value is $|\vec{r}_{a_2}-\vec{r}_{a_1}|-|\vec{r}_{a_2}-\vec{r}_{a_3}|$.
-For the "__distance__" reaction coordinate, two atom indexes are required in the order $a_1$ $a_2$. Then the reaction coordinate value is $|\vec{r}_{a_2}-\vec{r}_{a_1}|$.
-
 - __Wall__
 default: None (optional)
 
-> the hard wall(s) set to limit atom coordinates in the cell. The wall can be set on 6 directions. However, the function is not available in the MD simulations. 
+> unit (wall position): Bohr
 >
-> choices: xlo, xhi, ylo, yhi, zlo, zhi
+> the hard wall(s) set to limit atom coordinates in the cell. The wall can be set on 6 directions. However, the function is not available in the MD simulations. The format of this parameter is __string-floating point pair(s)__ constituted by a wall name and a number defining the position of the wall, such as _xlo 129.3_.
+>
+> choices (wall name): xlo, xhi, ylo, yhi, zlo, zhi
 
-- __W_pos__
-default: / (optional)
+- __Group__
+default: None (optional)
 
-> unit: Bohr
+> the group(s) of atom(s) defined with range(s). The format of this parameter is a group name followed by a range of the index(es) of atom(s) composing the group. The group name can be set up arbitrarily like the name of a variable in the code. The range is defined in the format b:e[:s], which means the atom(s) with the index(es) in the interval [b, e) under a stride s is(are) included in the group. The default stride is 1.
+>
+> example:
+> Group bottom 1:6 Proton 36:40:2
+> (In this example, two groups named "bottom" and "Proton" are defined. The group named "bottom" contains five atoms with the indexes 1, 2, 3, 4 and 5. And the group named "Proton" contains two atoms with the indexes 36 and 38.)
+
+### __Molecular Dynamics Settings__
+- __Time_Step__
+default: 1.0
+
+> unit: fs
+>
+> the time step of MD simulations.
+
+### __Hybird Monte Carlo Settings__
+- __N_Evol_Step__
+default: 3 (optional)
+
+> the number of V-V steps between two adjacent judges.
+
+- __Time_Step__
+default: 1.0
+
+> unit: fs
 > 
-> the position(s) of the set up wall(s). The number of the given number(s) should be equal to the number of the set up wall(s), and each number is mapped to each wall one-to-one. The parameter only works when the parameter __Wall__ has been set up.
+> the time step of V-V step in HMC simulations.
 
-- __N_MAX__
-default: 1293 (optional)
+- __Mass_Scal__
+default: 1.0 (optional)
 
-> maximum number of atoms for the simulations, a temporarily useless parameter.
+> the mass scaling coefficient used in the HMC scheme. Decreasing the masses of all elements owns the similar effect of increasing the velocity sampling temperature.
+
+### __Constraint Settings__
+- __Hybrid_Monte_Carlo_Ratio__
+default: 0.8 (optional)
+
+> the ratio of the HMC part in the centroid move. The centroid move contains HMC part and MC part.
+
+- __Virt Atom__
+default: None (optional)
+
+> the virtual atom(s) used in the definition of the reaction coordinate. The virtual atom is the centroid of the atoms composing it.
+> The format of the parameter is a virtual atom name followed by the indexes of atoms composing the virtual atom. The virtual atom name can be set up arbitrarily like the name of a variable in the code.
+>
+> example:
+> Virt_Atom Cent_0 9 6 16 Cent_1 1 36
+> (In this example, two virtual atoms named "Cent_0" and "Cent_1" are defined. The virtual atom named "Cent_0" is the centroid of three atoms with the indexes 9, 6 and 16. And the virtual atom named "Cent_1" is the centroid of two atoms with the indexes 1 and 36.)
+
+- __Rxn_Coord__
+default: None (optional)
+
+> unit (reaction coordinate value): Bohr
+> 
+> the reaction coordinate(s) used in the constrained simulations. The format of the parameter is a reaction coordinate type followed by three types of parameters for this reaction coordinate, the indexes of atoms involved in the reaction coordinate, the reaction coordinate value and the parameters for the MC part to evolve the reaction coordinate. The atom index can be either the index of the real atom or the name of the virtual atom.
+> 
+> choices (reaction coordinate type): DIST, DIFF
+>
+> __DIST__: the distance between two particles. Two atom indexes are required in the order $i_1$ $i_2$, then the reaction coordinate is $|\vec{r}_{i_1}-\vec{r}_{i_2}|$. Only one parameter is required for the MC part, and the parameter denotes the radius of the random sphere.
+> 
+> example:
+> DIST Cent_0 1 0.6 0.1
+> (In this example, the reaction coordinate is the distance between the virtual atom named "Cent_0" and the real atom with the index 1. The reaction coordinate value is 0.6 Bohr, and the radius of the random sphere used in the MC part is 0.1.)
+>
+> __DIFF__: the difference of particles' distances. Three atom indexes are required in the order $i_1$ $i_2$ $i_3$, then the reaction coordinate is $|\vec{r}_{i_2}-\vec{r}_{i_1}|-|\vec{r}_{i_2}-\vec{r}_{i_3}|$. Three parameters are required for the MC part, the random widths of the length, the theta and the phi.
+>
+> example:
+> DIFF 6 Cent_1 9 -0.1 0.4 0.1309 1.0472
+> (In this example, the reaction coordinate is the difference of the distances between the virtual atom named "Cent_1" with two real atoms with indexes 6 and 9 respectively. The reaction coordinate value is -0.1 Bohr, and three parameters used in the MC part are 0.4, 0.1309 and 1.0472.)
 
 ### __Grand Canonical Ensemble Settings__
-- __DP_model_prefix__
-default: NULL
+- __Elec_Num_Ratio__
+default: 0.0 (optional)
 
-> the prefix of DP potentials used for the _grand canonical_ ensemble. The simulation will be under a _grand canonical_ ensemble only when this parameter is set up.
+> the ratio of the electron number variation part in all moves. The electron number variation part will only be involved in the simulation if this parameter doesn't equal to 0.0.
 
-- __GC_type__
-default: Continuous
-
-> the type of the DP potential's electron number.
->
-> choices: Continuous, Discrete
-
-- __Ne_range__
-default: 0.5 0.66
-
-> unit: 1
->
-> the upper and lower limits of the electron number.
-
-- __delta_Ne__
-default: 0.04
-
-> unit: 1
-> 
-> the change interval of the electron number.
-
-- __Ne_proportion__
-default: 0.1
-
-> the proportion of the electron number change part in all moves.
-
-- __mu__
-default: -0.5
+- __Mu__
+default: 0.0 (optional)
 
 > unit: eV
 > 
 > the electrochemical potential for the _grand canonical_ ensemble.
 
-### __Model Deviation Settings__
-- __model_devi_models__
-default: NULL
+- __Elec_Num_Range__
+default: 0.0 0.0 (optional)
 
-> the DP potentials used for the model deviations. More than one DP potentials should be provided, and the DP potential used for the simulation isn't contained inherently.
-
-- __model_devi_file__
-default: model_devi.out (optional)
-
-> the file to output the model deviation results.
-
-- __interval__
-default: 100
-> the interval between two model deviation results.
-
-### __Molecular Dynamics Settings__
-- __Delta_t__
-default: 2.4
-
-> unit: fs
+> unit: 1
 >
-> the time interval of Molecular Dynamics simulations.
+> the range of the electron number can be sampled. Two numbers of the parameter are the lower and higher bounds of the range, respectively. The electron number of the initial structure should locate in this range.
 
-### __Hybrid Monte Carlo Settings__
-- __M_scaling__
-default: 1 (optional)
+- __Elec_Num_Width__
+default: 0.04 (optional)
 
-> the mass scaling coefficient used in the HMC scheme. Decreasing the masses of all elements owns the similar effect of increasing the velocity sampling temperature.
-
-- __Delta_t__
-default: 2.4
-
-> unit: fs
+> unit: 1
 > 
-> the time interval of Hybrid Monte Carlo simulations.
-
-- __HMC_proportion__
-default: 0.5
-
-> the proportion of the HMC part in centroid move. The centroid move contains HMC part and MC part.
-
-- __N_step__
-default: 3 (optional)
-
-> the number of V-V steps between two judges for whether accept or not.
-
-- __HMC_lstep__
-default: 0.3
-
-> unit: Bohr
->
-> the length threshold of MC movement in HMC method.
-
-- __HMC_theta_step__
-default: 0.1309
-
-> unit: rad
->
-> the theta threshold of MC movement in HMC method.
-
-- __HMC_phi_step__
-default: 1.0472
-
-> unit: rad
-> 
-> the phi threshold of MC movement in HMC method.
-
-### __Monte Carlo Settings__
-- __radial__
-default: 0.4
-
-> unit: Bohr
->
-> the radial of ball to adjust angle.
-
-- __MC_theta_step__
-default: 0.1309
-
-> unit: rad
-> 
-> the theta threshold of central atom moving on the hyperboloid.
-
-- __MC_phi_step__
-default: 1.0472
-
-> unit: rad
-> 
-> the phi threshold of central atom moving on the hyperboloid.
+> the change width of the electron number.
 
 ### __Path Integral Settings__
-- __initial_beads__
+- __Beads_File__
 default: (optional)
 
 > the initial beads coordinates file. If the parameter isn't given, all beads are the same as the centroid at the beginning.
 
-- __beads_file__
-default: BEADS (optional)
-
-> the prefix of beads coordinates file for the output structure.
-
-- __P__
+- __N_Bead__
 default: 1 (optional)
 
 > the number of beads.
 
-- __J__
-default: 0 (optional)
-
-> the number of beads changed in each step.
-
-- __N_bead__
+- __N_Change_Bead__
 default: 1 (optional)
 
-> the number of atom(s) to be considered with path integral.
+> the number of bead(s) changed in each step. This parameter should be smaller than the parameter __N_Bead__.
 
-- __bead_index__
-default: 0 (optional)
+- __Bead_Index__
+default: None (optional)
 
-> the index(s) of different bead atom(s) in coordinates.
+> the index(s) of different bead atom(s) in coordinates.The atom index can be either the index of the real atom or the name of the group.
+
+### __Model Deviation Settings__
+- __Model_Devi_Deep_Pot_Models__
+default: None (optional)
+
+> the DP potentials used for the model deviations. More than one DP potentials should be provided, and the DP potential used for the simulation isn't contained inherently.
+
+- __Model_Devi_Intvl__
+default: 100 (optional)
+> the interval between two outputs of model deviation results.
+
+- __Model_Devi_File__
+default: MODEL_DEVI (optional)
+
+> the file to output the model deviation results.
+
+### __Output Settings__
+- __Phy_Quant_File__
+default: PHY_QUANT (optional)
+                    
+> the file to output different physical quantities.
+
+- __Col_Width__
+default: 12 (optional)
+
+> the width of the column in the file to output different physical quantities set by the parameter __Phy_Quant_File__.
+
+- __Out_Phy_Quant__
+default: ke pe etotal (optional)
+
+> the physical quantities to be output in the file set by __Phy_Quant_File__. The physical quantities can be chosen contain kinetic energy, potential energy, total energy, internal energy, electron number, reaction coordinate value, mean force on the left atom, mean force on the right atom, mean force, accumulative average of potential energy.
+>
+> choices: ke pe etotal eint ne rc mfl mfr mf pe_ave
+> (if more than one reaction coordinates are defined in the simulation, the reaction coordinate value, mean force of each reaction coordinate are labeled by a suffix index beginning with 0. For example, the reaction coordinate value of the second reaction coordinate is _rc_1_)
+
+- __Phy_Quant_Digits__
+default: ke 6 pe 6 etotal 6 (optional)
+
+> the decimal digits of physical quantity(ies) to be output in the file set by __Phy_Quant_File__. The format of this parameter is string-integer pair(s) constituted by a physical quantity and a number defining the decimal digit of the physical quantity, such as _ke 2_.
+
+- __Phy_Quant_Intvl__
+default: 1 (optional)
+
+> the number of steps in the interval to output the physical quantity(ies).
+
+- __Stru_Intvl__
+default: 100 (optional)
+
+> the number of steps in the interval between two outputs of the structures.
