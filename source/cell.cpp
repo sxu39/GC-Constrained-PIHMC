@@ -1,434 +1,344 @@
-//
-// Created by Jin Bin on 2022/02/06.
-//
-
 #include "cell.h"
+using namespace cpihmc;
+using namespace std;
 
-cell::cell(const string &atom_file, const string &global_out_dir):fn(atom_file), global_out_dir(global_out_dir){
-    if (strcmp(atom_file.c_str(), ""))
-        setup_cell();
+cpihmc::cell::cell(const input &Input):AtomLabel(nullptr), AtomMass(nullptr), PseudoFileName(nullptr), OrbitalFileName(nullptr), 
+                                       Magnetization(nullptr), AtomMagnet(nullptr), AtomMagnetVec(nullptr), SetElecNum(false), ElecNum(0.0), 
+                                       LatConst(0.0), LatConstAng(0.0), Omega(0.0), NType(Input.get_n_type()), NAtoms(0)
+{
+    const string &StruFile = Input.get_stru_file();
+    if (StruFile.size()) setup_cell(StruFile);
 }
 
-cell::~cell(){
-    delete [] elements;
-    delete [] atom_label;
-    delete [] atom_mass;
-    delete [] pseudo_fn;
-    delete [] numer_orb;
+cpihmc::cell::~cell()
+{
+    if (AtomLabel) delete [] AtomLabel;
+    if (AtomMass) delete [] AtomMass;
+    if (PseudoFileName) delete [] PseudoFileName;
+    if (OrbitalFileName) delete [] OrbitalFileName;
+    if (Magnetization) delete [] Magnetization;
+    if (AtomMagnet)
+    {
+        for (index_t i = 0 ; i < NType ; ++i)
+            delete [] AtomMagnet[i];
+        delete [] AtomMagnet;
+    }
+    if (AtomMagnetVec)
+    {
+        for (index_t i = 0 ; i < NType ; ++i)
+            delete [] AtomMagnetVec[i];
+        delete [] AtomMagnetVec;
+    }
 }
 
-void cell::setup_cell(){
-    assert(ntype>0);
-    elements = new element [ntype];
+void cpihmc::cell::setup_cell(const string &StruFile)
+{
+	assert(NType>0);
 
-    bool ok = true;
-    bool ok2 = true;
+	bool_t ok = true;
+	bool_t ok2 = true;
 
-    ifstream ifa(fn.c_str(), ios::in);
-    if (!ifa)
-        ok = false;
+    // open structure file.
+    ifstream InFileStru(StruFile, ios::in);
+    if (!InFileStru) ok = false;
+
     if(ok)
     {
-        this->read_atom_species(ifa);
-
-        //==========================
-        // call read_atom_positions
-        //==========================
-        ok2 = this->read_atom_positions(ifa);
+        read_atom_species(InFileStru);
+        ok2 = read_atom_positions(InFileStru);
     }
-    //========================================================
-    // Calculate unit cell volume
-    // the reason to calculate volume here is
-    // Firstly, latvec must be read in.
-    //========================================================
-    assert(lat0 > 0.0);
-    this->omega = abs( latvec.Det()) * this->lat0 * lat0 * lat0;
+	
+	//========================================================
+	// Calculate unit cell volume
+	// the reason to calculate volume here is 
+	// Firstly, LatVec must be read in.
+	//========================================================
+	assert(LatConst > 0.0);
+	Omega = abs(LatVec.det()) * pow(LatConst, 3);
 }
 
-void cell::read_atom_species(ifstream &ifa){
-    pseudo_fn = new string [ntype];
-    atom_label = new string [ntype];
-    atom_mass = new double [ntype];
+void cpihmc::cell::read_atom_species(ifstream &InFileStru)
+{
+    if (AtomLabel) delete [] AtomLabel;
+    if (AtomMass) delete [] AtomMass;
+    if (PseudoFileName) delete [] PseudoFileName;
+    AtomLabel = new string [NType]; // atom labels
+    AtomMass = new prec_t [NType]; //atom masses
+    PseudoFileName = new string [NType]; //file name of pseudopotential
+
     //==========================================
     // read in the electron number if necessary
     //==========================================
-    if( SCAN_BEGIN(ifa, "ELECTRON_NUMBER") ){
-        READ_VALUE(ifa, electron_number);
-        gce = true;
+    if(scan_begin(InFileStru, "ELECTRON_NUMBER"))
+    {
+        read_value(InFileStru, ElecNum);
+        SetElecNum = true;
     }
 
     //==========================================
     // read in information of each type of atom
     //==========================================
-    if( SCAN_BEGIN(ifa, "ATOMIC_SPECIES") ){
-        for (int i = 0 ; i < ntype ; ++i){
-            ifa >> atom_label[i] >> atom_mass[i];
-            READ_VALUE(ifa, pseudo_fn[i]);
+    if(scan_begin(InFileStru, "ATOMIC_SPECIES"))
+    {    
+        InFileStru.ignore(300, '\n');
+        for (index_t i = 0 ; i < NType ; ++i)
+        {
+            string OneLine, OneStr;
+            getline(InFileStru, OneLine);
+            stringstream StrStr;
+            StrStr << OneLine;
+            StrStr >> AtomLabel[i] >> AtomMass[i];
+            PseudoFileName[i] = "auto";
+            if (StrStr >> OneStr)
+                if (OneStr[0] != '#')
+                    PseudoFileName[i] = OneStr;
         }
     }
 
     //==============================================
     // read in numerical orbital files if necessary
     //==============================================
-    if (SCAN_BEGIN(ifa, "NUMERICAL_ORBITAL")){
-        lcao = true;
-        numer_orb = new string [ntype];
-        for (int i = 0 ; i < ntype ; ++i)
-            READ_VALUE(ifa, numer_orb[i]);
+    if(scan_begin(InFileStru, "NUMERICAL_ORBITAL"))
+    {
+        if (OrbitalFileName) delete [] OrbitalFileName;
+        OrbitalFileName = new string [NType];
+        for (index_t i = 0 ; i < NType ; ++i)
+            InFileStru >> OrbitalFileName[i];
     }
 
     //==========================
     // read in lattice constant
     //==========================
-    if( SCAN_BEGIN(ifa, "LATTICE_CONSTANT") )
+    if(scan_begin(InFileStru, "LATTICE_CONSTANT"))
     {
-        READ_VALUE(ifa, lat0);
-        lat0_angstrom = lat0 * 0.529177;
+        read_value(InFileStru, LatConst);
+        LatConstAng = LatConst * Bohr2Ang;
     }
 
     //===========================
-    // Read in latticies vector
+    // Read in lattice vectors
     //===========================
-    if( SCAN_BEGIN(ifa, "LATTICE_VECTORS") )
+    if(scan_begin(InFileStru, "LATTICE_VECTORS"))
     {
-        // Reading lattice vectors. notice
-        // here that only one cpu read these
-        // parameters.
-        ifa >> latvec.e11 >> latvec.e12;
-        READ_VALUE(ifa, latvec.e13);
-        ifa >> latvec.e21 >> latvec.e22;
-        READ_VALUE(ifa, latvec.e23);
-        ifa >> latvec.e31 >> latvec.e32;
-        READ_VALUE(ifa, latvec.e33);
-
-        // lattice vectors in another form.
-        a1.x = latvec.e11;
-        a1.y = latvec.e12;
-        a1.z = latvec.e13;
-
-        a2.x = latvec.e21;
-        a2.y = latvec.e22;
-        a2.z = latvec.e23;
-
-        a3.x = latvec.e31;
-        a3.y = latvec.e32;
-        a3.z = latvec.e33;
-
+        // Reading lattice vectors. notice here that only one cpu read these parameters.
+        InFileStru >> LatVec.e11 >> LatVec.e12;
+        read_value(InFileStru, LatVec.e13);
+        InFileStru >> LatVec.e21 >> LatVec.e22;
+        read_value(InFileStru, LatVec.e23);
+        InFileStru >> LatVec.e31 >> LatVec.e32;
+        read_value(InFileStru, LatVec.e33);
     }
-    lattice = lat0 * latvec.e11;
-    this->scale_lattice();
-}
+} // end read_atom_species
 
-bool cell::read_atom_positions(ifstream &ifpos)
+const bool_t cpihmc::cell::read_atom_positions(ifstream &InFileStru)
 {
-    bool use_xyz = false;
-
-    if( SCAN_BEGIN(ifpos, "ATOMIC_POSITIONS"))
+    stringstream StrWarn;
+    if(scan_begin(InFileStru, "ATOMIC_POSITIONS"))
     {
-        READ_VALUE(ifpos, Coordinate);
-        if(Coordinate != "Cartesian"
-           && Coordinate != "Direct"
-           && Coordinate != "Cartesian_angstrom"
-           && Coordinate != "Cartesian_au"
-           && Coordinate != "Cartesian_angstrom_center_xy"
-           && Coordinate != "Cartesian_angstrom_center_xz"
-           && Coordinate != "Cartesian_angstrom_center_yz"
-           && Coordinate != "Cartesian_angstrom_center_xyz"
-                )
-            return 0;
+        read_value(InFileStru, CoordType);
+        if (CoordType != "Cartesian" 
+            && CoordType != "Direct" 
+            && CoordType != "Cartesian_angstrom"
+            && CoordType != "Cartesian_au"
+            && CoordType != "Cartesian_angstrom_center_xy"
+            && CoordType != "Cartesian_angstrom_center_xz"
+            && CoordType != "Cartesian_angstrom_center_yz"
+            && CoordType != "Cartesian_angstrom_center_xyz"
+            )
+        {
+            StrWarn << " There are several options for you:" << endl;
+            StrWarn << " Direct" << endl;
+            StrWarn << " Cartesian_angstrom" << endl;
+            StrWarn << " Cartesian_au" << endl;
+            StrWarn << " Cartesian_angstrom_center_xy" << endl;
+            StrWarn << " Cartesian_angstrom_center_xz" << endl;
+            StrWarn << " Cartesian_angstrom_center_yz" << endl;
+            StrWarn << " Cartesian_angstrom_center_xyz" << endl;
+            cerr << StrWarn.str();
+            return false; // means something wrong
+        }
 
-        Vector3<double> v;
-        Vector3<int> mv;
-        int na = 0;
-        this->N_atoms = 0;
+        vec3<prec_t> Vec;
+        vec3<bool_t> MoveVec;
+        size_t NAtom = 0;
+        NAtoms = 0;
 
         //======================================
         // calculate total number of atoms
         // and adjust the order of atom species
         //======================================
-        assert(ntype>0);
-        for (int it = 0 ; it < ntype ; ++it){
-            string mag;
+        assert(NType>0);
+        if (Magnetization) delete [] Magnetization;
+        Magnetization = new prec_t [NType];
+        if (AtomMagnet)
+        {
+            for (index_t i = 0 ; i < NType ; ++i)
+                delete [] AtomMagnet[i];
+            delete [] AtomMagnet;
+        }
+        AtomMagnet = new prec_t *[NType];
+        if (AtomMagnetVec)
+        {
+            for (index_t i = 0 ; i < NType ; ++i)
+                delete [] AtomMagnetVec[i];
+            delete [] AtomMagnetVec;
+        }
+        AtomMagnetVec = new vec3<prec_t> *[NType];
+        string Label;
+        index_t AtomIndex = 0;
+        for (index_t it = 0 ; it < NType ; ++it)
+        {   
             //=======================================
-            // (1) read in atom label
+            // read in atom label
             // start magnetization
             //=======================================
-            READ_VALUE(ifpos, elements[it].label);
-            bool found = false;
-            for (int it2 = 0 ; it2 < ntype ; ++it2){
-                if(elements[it].label == this->atom_label[it]){
-                    found = true;
-                    // scale the mass for HMC evolution, default mass scaling coefficient is 1
-                    elements[it].mass = this->atom_mass[it] * Consts.M_scaling;
-                    break;
-                }
-            }
-            if(!found)
-                return 0;
-            READ_VALUE(ifpos, mag);
-
-            //=========================
-            // (3) read in atom number
-            //=========================
-            READ_VALUE(ifpos, na);
-
-            this->N_atoms += na;
-            if (na <= 0)
-                return 0;
-            if (na > 0)
+            read_value(InFileStru, Label);
+            if (Label == AtomLabel[it]) Elements.push_back(element{Label, AtomMass[it], Atoms});
+            else
             {
-                this->elements[it].number = na;
-                this->elements[it].atoms = new atom [N_atoms];
-                atom * &atoms = this->elements[it].atoms;
-                for (int ia = 0;ia < na; ia++)
+                StrWarn << " Label orders in ATOMIC_POSITIONS and ATOMIC_SPECIES sections do not match!" << endl;
+                StrWarn << " Label read from ATOMIC_POSITIONS is " << Elements[it].Label << endl;
+                StrWarn << " Label from ATOMIC_SPECIES is " << AtomLabel[it] << endl;
+                cerr << StrWarn.str();
+                return false;
+            }
+
+            read_value(InFileStru, Magnetization[it]);
+
+            //=========================
+            // read in atom number
+            //=========================
+            read_value(InFileStru, NAtom);
+            Elements[it].Number = NAtom;
+            NAtoms += NAtom;
+            Atoms.resize(NAtoms, atom{Elements[it].Mass});
+            Elements[it].set_begin(NAtoms-NAtom);
+
+            if (NAtom < 0) return false;
+            if (NAtom > 0)
+            {
+                AtomMagnet[it] = new prec_t [NAtom];
+                AtomMagnetVec[it] = new vec3<prec_t> [NAtom];
+                for (index_t ia = 0 ; ia < NAtom ; ++ia)
                 {
-                    if(use_xyz)
+                    InFileStru >> Vec.x >> Vec.y >> Vec.z;
+                    MoveVec.x = true;
+                    MoveVec.y = true;
+                    MoveVec.z = true ;
+
+                    string Tmpid;
+                    Tmpid = InFileStru.get();
+
+                    if((index_t)Tmpid[0] < 0)
                     {
-                        string tmpid;
-                        ifpos >> tmpid;
-                        if(tmpid != elements[it].label)
-                            return 0;
-                        else
+                        StrWarn << "read_atom_positions, mismatch in atom number for atom type: " << Elements[it].Label << endl;
+                        cerr << StrWarn.str();
+                        exit(1); 
+                    }
+
+                    // read if catch goodbit before "\n" and "#"
+                    while ((Tmpid != "\n") && (InFileStru.good()) && (Tmpid !="#") )
+                    {
+                        Tmpid = InFileStru.get();
+                        // old method of reading frozen ions
+                        char Tmp = (char)Tmpid[0];
+                        if (Tmp >= 48 && Tmp <= 57)
                         {
-                            ifpos >> v.x >> v.y >> v.z;
-
-                            mv.x = true;
-                            mv.y = true;
-                            mv.z = true;
+                            MoveVec.x = stoi(Tmpid);
+                            InFileStru >> MoveVec.y >> MoveVec.z ;
                         }
+                        // new method of reading frozen ions and velocities
+                        if (Tmp >= 'a' && Tmp <= 'z')
+                        {
+                            InFileStru.putback(Tmp);
+                            InFileStru >> Tmpid;
+                        }
+                        if (Tmpid == "m")
+                            InFileStru >> MoveVec.x >> MoveVec.y >> MoveVec.z;
+                        else if (Tmpid == "v" || Tmpid == "vel" || Tmpid == "velocity")
+                            InFileStru >> Atoms[AtomIndex].Vel.x >> Atoms[AtomIndex].Vel.y >> Atoms[AtomIndex].Vel.z;
+                        else if (Tmpid == "mask") Masks.push_back(AtomIndex);
+                        else if (Tmpid == "mag" || Tmpid == "magmom")
+                        {
+                            prec_t Tmpamg = 0;
+                            InFileStru >> Tmpamg;
+                            Tmp = InFileStru.get();
+                            while (Tmp==' ')
+                                Tmp=InFileStru.get();
+                            
+                            if ((Tmp >= 48 && Tmp <= 57) || Tmp=='-')
+                            {
+                                InFileStru.putback(Tmp);
+                                InFileStru >> AtomMagnetVec[it][ia].y >> AtomMagnetVec[it][ia].z;
+                                AtomMagnetVec[it][ia].x = Tmpamg;
+                            }
+                            else
+                            {
+                                InFileStru.putback(Tmp);
+                                AtomMagnet[it][ia] = Tmpamg;
+                            }
+                        }
+                        else if (Tmpid == "angle1")
+                        {
+                            prec_t Angle1;
+                            InFileStru >> Angle1;
+                        }
+                        else if (Tmpid == "angle2")
+                        {
+                            prec_t Angle2;
+                            InFileStru >> Angle2;
+                        }    
                     }
-                    else
+                    // move to next line
+                    while ((Tmpid != "\n") && (InFileStru.good()))
+                        Tmpid = InFileStru.get();
+            
+                    if (CoordType == "Direct")
                     {
-                        ifpos >> v.x >> v.y >> v.z
-                              >> mv.x >> mv.y >> mv.z;
+                        // change Vec from Direct to Cartesian
+                        Atoms[AtomIndex].Coord = Vec * LatVec;
                     }
-
-                    ifpos.ignore(150, '\n');
-
-                    atoms[ia].move.x = mv.x;
-                    atoms[ia].move.y = mv.y;
-                    atoms[ia].move.z = mv.z;
-
-                    if(Coordinate=="Direct")
-                    {
-                        // change v from direct to cartesian,
-                        // the unit is pw.lat0
-                        Vector3<double> v_c = v * latvec;
-                        atoms[ia].r.x = v_c.x;
-                        atoms[ia].r.y = v_c.y;
-                        atoms[ia].r.z = v_c.z;
-                    }
-                    else if(Coordinate=="Cartesian")
-                    {
-                        atoms[ia].r.x = v.x;
-                        atoms[ia].r.y = v.y;
-                        atoms[ia].r.z = v.z;
-                    }
-                    else if(Coordinate=="Cartesian_angstrom")
-                    {
-                        v = v / 0.529177 / lat0;
-                        atoms[ia].r.x = v.x;
-                        atoms[ia].r.y = v.y;
-                        atoms[ia].r.z = v.z;
-                    }
-                    else if(Coordinate=="Cartesian_angstrom_center_xy")
-                    {
-                        // calculate lattice center
-                        v = v / 0.529177 / lat0;
-                        atoms[ia].r.x = v.x + (latvec.e11 + latvec.e21 + latvec.e31)/2.0;
-                        atoms[ia].r.y = v.y + (latvec.e12 + latvec.e22 + latvec.e32)/2.0;
-                        atoms[ia].r.z = v.z;
-                    }
-                    else if(Coordinate=="Cartesian_angstrom_center_xz")
-                    {
-                        // calculate lattice center
-                        v = v / 0.529177 / lat0;
-                        atoms[ia].r.x = v.x + (latvec.e11 + latvec.e21 + latvec.e31)/2.0;
-                        atoms[ia].r.y = v.y;
-                        atoms[ia].r.z = v.z + (latvec.e13 + latvec.e23 + latvec.e33)/2.0;
-                    }
-                    else if(Coordinate=="Cartesian_angstrom_center_yz")
-                    {
-                        // calculate lattice center
-                        v = v / 0.529177 / lat0;
-                        atoms[ia].r.x = v.x;
-                        atoms[ia].r.y = v.y + (latvec.e12 + latvec.e22 + latvec.e32)/2.0;
-                        atoms[ia].r.z = v.z + (latvec.e13 + latvec.e23 + latvec.e33)/2.0;
-                    }
-                    else if(Coordinate=="Cartesian_angstrom_center_xyz")
+                    else if (CoordType == "Cartesian")
+                        Atoms[AtomIndex].Coord = Vec; // in unit LatConst
+                    else if (CoordType == "Cartesian_angstrom")
+                        Atoms[AtomIndex].Coord = Vec / LatConstAng;
+                    else if (CoordType == "Cartesian_angstrom_center_xy")
                     {
                         // calculate lattice center
-                        v = v / 0.529177 / lat0;
-                        atoms[ia].r.x = v.x + (latvec.e11 + latvec.e21 + latvec.e31)/2.0;
-                        atoms[ia].r.y = v.y + (latvec.e12 + latvec.e22 + latvec.e32)/2.0;
-                        atoms[ia].r.z = v.z + (latvec.e13 + latvec.e23 + latvec.e33)/2.0;
+                        vec3<prec_t> LatCenter{(LatVec.e11+LatVec.e21+LatVec.e31)/2.0, (LatVec.e12+LatVec.e22+LatVec.e32)/2.0, 0.0};
+                        Atoms[AtomIndex].Coord = Vec / LatConstAng + LatCenter;
                     }
-                    else if(Coordinate=="Cartesian_au")
+                    else if (CoordType == "Cartesian_angstrom_center_xz")
                     {
-                        v = v / lat0;
-                        atoms[ia].r.x = v.x;
-                        atoms[ia].r.y = v.y;
-                        atoms[ia].r.z = v.z;
+                        // calculate lattice center
+                        vec3<prec_t> LatCenter{(LatVec.e11+LatVec.e21+LatVec.e31)/2.0, 0.0, (LatVec.e13+LatVec.e23+LatVec.e33)/2.0};
+                        Atoms[AtomIndex].Coord = Vec / LatConstAng + LatCenter;
                     }
-                }
-            }
-        }
+                    else if (CoordType == "Cartesian_angstrom_center_yz")
+                    {
+                        // calculate lattice center
+                        vec3<prec_t> LatCenter{0.0, (LatVec.e12+LatVec.e22+LatVec.e32)/2.0, (LatVec.e13+LatVec.e23+LatVec.e33)/2.0};
+                        Atoms[AtomIndex].Coord = Vec / LatConstAng + LatCenter;
+                    }
+                    else if (CoordType == "Cartesian_angstrom_center_xyz")
+                    {
+                        // calculate lattice center
+                        vec3<prec_t> LatCenter{(LatVec.e11+LatVec.e21+LatVec.e31)/2.0, (LatVec.e12+LatVec.e22+LatVec.e32)/2.0, 
+                                               (LatVec.e13+LatVec.e23+LatVec.e33)/2.0};
+                        Atoms[AtomIndex].Coord = Vec / LatConstAng + LatCenter;
+                    }
+                    else if (CoordType == "Cartesian_au")
+                        Atoms[AtomIndex].Coord = Vec / LatConst;
+                    
+                    Atoms[AtomIndex].Move = MoveVec;
+                    ++AtomIndex;
+                } // end for NAtom
+            } // end NAtom
+        } // end for NType
+    } // end scan_begin
 
-    }
-    // this->scale_forward();
-    for (int i = 0 ; i < ntype ; ++i){
-        for (int j = 0 ; j < this->elements[i].number ; ++j){
-            this->elements[i].atoms[j].r.x *= lat0;
-            this->elements[i].atoms[j].r.y *= lat0;
-            this->elements[i].atoms[j].r.z *= lat0;
-        }
-    }
-    // this->print_cell_xyz("STRU_READIN_ADJUST.xyz");
-    return 1;
-}//end read_atom_positions
-
-void cell::print_cell_xyz(const string &fn) const
-{
-    stringstream ss;
-    ss << global_out_dir << fn;
-
-    ofstream ofs(ss.str().c_str());
-
-    ofs << N_atoms << endl;
-    ofs << "None" << endl;
-    ofs << atom_label << endl;
-    for (int it = 0 ; it < ntype ; ++it){
-        for (int ia=0; ia < elements[it].number ; ia++)
-        {
-            ofs << atom_label
-                << " " << elements[it].atoms[ia].r.x * 0.529177
-                << " " << elements[it].atoms[ia].r.y * 0.529177
-                << " " << elements[it].atoms[ia].r.z * 0.529177 << endl;
-        }
-    }
-
-    ofs.close();
-}
-
-void cell::print_stru_file(const string &fn, const int &type) const
-{
-    ofstream ofs(fn.c_str());
-
-    if (gce){
-        ofs << "ELECTRON_NUMBER\n" << electron_number << endl;
-        ofs << endl;
-    }
-
-    ofs << "ATOMIC_SPECIES" << endl;
-    ofs << setprecision(12);
-
-    for(int it=0; it<ntype; it++)
-    {
-        //modified by zhengdy 2015-07-24
-        ofs << atom_label[it] << " " << atom_mass[it] << " " << pseudo_fn[it] << endl;
-    }
-
-    if (lcao){
-        ofs << "\nNUMERICAL_ORBITAL" << endl;
-        for (int it = 0 ; it < ntype ; it++)
-            ofs << numer_orb[it] << endl;
-    }
-
-    ofs << "\nLATTICE_CONSTANT" << endl;
-    //modified by zhengdy 2015-07-24
-    ofs << lat0 << endl;
-
-    ofs << "\nLATTICE_VECTORS" << endl;
-    ofs << latvec.e11 << " " << latvec.e12 << " " << latvec.e13 << " #latvec1" << endl;
-    ofs << latvec.e21 << " " << latvec.e22 << " " << latvec.e23 << " #latvec2" << endl;
-    ofs << latvec.e31 << " " << latvec.e32 << " " << latvec.e33 << " #latvec3" << endl;
-
-    ofs << "\nATOMIC_POSITIONS" << endl;
-
-    if(type==1)
-    {
-        ofs << "Cartesian" << endl;
-        for(int it=0; it<ntype; it++)
-        {
-            ofs << endl;
-            ofs << elements[it].label << " #label" << endl;
-            ofs << 0 << " #magnetism" << endl;
-            //2015-05-07, modify
-            //ofs << atoms[it].nwl << " #max angular momentum" << endl;
-            //xiaohui modify 2015-03-15
-            //for(int l=0; l<=atoms[it].nwl; l++)
-            //{
-            //	ofs << atoms[it].l_nchi[l] << " #number of zeta for l=" << l << endl;
-            //}
-            ofs << elements[it].number << " #number of atoms" << endl;
-            for(int ia=0; ia<elements[it].number; ia++)
-            {
-                ofs << elements[it].atoms[ia].r.x / lat0 << " "
-                    << elements[it].atoms[ia].r.y / lat0 << " "
-                    << elements[it].atoms[ia].r.z / lat0 << " "
-                    << elements[it].atoms[ia].move.x << " "
-                    << elements[it].atoms[ia].move.y << " "
-                    << elements[it].atoms[ia].move.z << endl;
-            }
-        }
-    }
-    else if(type==2)
-    {
-        ofs << "Direct" << endl;
-        for (int it = 0 ; it < ntype ; ++it){
-            ofs << endl;
-            ofs << elements[it].label << " #label" << endl;
-            ofs << 0 << " #magnetism" << endl;
-            //ofs << atoms[it].nwl << " #max angular momentum" << endl;
-            //xiaohui modify 2015-03-15
-            //for(int l=0; l<=atoms[it].nwl; l++)
-            //{
-            //	ofs << atoms[it].l_nchi[l] << " #number of zeta for l=" << l << endl;
-            //}
-            ofs << elements[it].number << " #number of atoms" << endl;
-            for(int ia=0; ia<elements[it].number; ia++)
-            {
-                double dx,dy,dz;
-                Cartesian_to_Direct(elements[it].atoms[ia].r.x / lat0,
-                                    elements[it].atoms[ia].r.y / lat0,
-                                    elements[it].atoms[ia].r.z / lat0,
-                                    latvec.e11, latvec.e12, latvec.e13,
-                                    latvec.e21, latvec.e22, latvec.e23,
-                                    latvec.e31, latvec.e32, latvec.e33,
-                                    dx,dy,dz);
-                ofs << dx << " " << dy << " " << dz << " "
-                    << elements[it].atoms[ia].move.x << " "
-                    << elements[it].atoms[ia].move.y << " "
-                    << elements[it].atoms[ia].move.z << endl;
-            }
-        }
-    }
-
-    ofs.close();
-}
-
-void cell::scale_lattice(){
-    lattice_vector = latvec * lat0;
-}
-
-bool cell::SCAN_BEGIN(ifstream &ifs, const string &TargetName, const bool restart)
-{
-    string SearchName;
-    bool find = false;
-    if (restart)
-    {
-        ifs.clear();
-        ifs.seekg(0);
-    }
-    ifs.rdstate();
-    while (ifs.good())
-    {
-        ifs >> SearchName;
-        if ( SearchName == TargetName)
-        {
-            find = true;
-            break;
-        }
-    }
-    return find;
-}
+    for (index_t it = 0 ; it < NType ; ++it)
+        for (index_t ia = 0 ; ia < Elements[it].Number ; ++ia)
+            Elements[it][ia].Coord *= LatConst;
+    return true;
+} // end read_atom_positions

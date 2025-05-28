@@ -1,50 +1,48 @@
-//
-// Created by Jin Bin on 2021/11/08.
-//
+#ifndef CPIHMC_BOX_H
+#define CPIHMC_BOX_H
 
-#ifndef MD_MC_BOX_H
-#define MD_MC_BOX_H
+#include "cell.h"
+#include "rand.h"
 
-#include <vector>
-#include "element.h"
-#include "constant.h"
-#include <random>
-#include "matrix3.h"
-#include <map>
-using namespace std;
+namespace cpihmc
+{
+    class box
+    {
+        friend class output;
+        private:
+            cell Cell;
+        private:
+            static const index_t find_ge_index(const std::vector<index_t> &, const index_t);
+            const index_t element2atom(const index_t, const index_t) const;
+            void update_kinetic_energy();
+        public:
+            mat3<prec_t> LatVec;
+            prec_t &ElecNum;
+            const prec_t MassScal;
+            const size_t NType;
+            const std::unordered_map<std::string, index_t> ElementType;
+            const size_t &NAtoms;
+            std::vector<atom> &Atoms;
+            std::vector<element> &Elements;
+            std::vector<index_t> &Masks;
+            std::vector<index_t> AtomIndexes;
+            const size_t NBead;
+            const std::vector<index_t> BeadIndexes;
+            std::vector<bead> Beads;
+            const prec_t Temp;
+            prec_t KinEng;
+            prec_t PotEng;
+            prec_t TotEng;
+            prec_t QtmKinEng;
+        public:
+            explicit box(const input &Input);
+            ~box() = default;
+            void update_total_energy(const bool_t UpdateKinEng=false){if (UpdateKinEng) update_kinetic_energy(); TotEng = KinEng + PotEng;}
+            void insert_atom(const index_t);
+            void insert_atom(const index_t, const index_t);
+            void remove_atom(const index_t);
+            void remove_atom(const index_t, const index_t);
+    };
+}
 
-#define PI acos(-1)
-
-extern constant Consts;
-
-class box {
-public:
-    element *elements;
-    map<string, int> element_type;
-    Matrix3 lattice_vector;
-    double *electron_number;
-    int N_atoms;
-    int ntype = Consts.ntype;
-    double T = Consts.T;
-    double kinetic_energy = 0;
-    double quantum_kinetic_energy = 0;
-    double potential_energy = 0;
-    double energy = 0;
-    const double k_B = 2.97116e-6;
-    vector<bead> beads;
-    vector<int> bead_index;
-    box(element *, Matrix3, int, double *, long long);
-    void init_velocities();
-    void update_kinetic_energy();
-    double Random() const;
-    double *new_atoms(element *Elements) const;
-    void reload_r(const double *vec) const;
-    void regular() const; // move atom(s) outside the cell inside
-    double RanGaussian(double mass) const;
-private:
-    long long seed;
-    Matrix3 lattice_vector_inverse;
-};
-
-
-#endif //MD_MC_BOX_H
+#endif
