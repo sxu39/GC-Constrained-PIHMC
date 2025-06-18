@@ -1,1 +1,32 @@
+INPUT_PARAMETERS
+#Parameters (General)
+Deep_Pot_Model      ./DP-Ne.pb
+Steps               300000
+
+#Parameters (System)
+Temp                300
+N_Type              5
+Element_Type        Pt H1 H2 O1 O2
+Element_Index       0 1 1 2 2
+Wall                xhi 33
+
+#Parameters (Output)
+Out_Phy_Quant       ke pe etotal ne rc mf
+Col_Width           15
+Phy_Quant_Digits    ne 4
+Stru_Intvl          500
+
+#Parameters (Hybrid Monte Carlo)
+Time_Step           1.2
+N_Evol_Step         3
+
+#Parameters (Constraint)
+Hybrid_Monte_Carlo_Ratio      0.95
+Rxn_Coord     DIFF 55 124 197 -0.4 0.4 0.1309 1.0472
+
+#Parameters (Grand Canonical Ensemble)
+Elec_Num_Range       0.001 10
+Elec_Num_Width       0.2
+Elec_Num_Ratio       0.4
+Mu                   -3.5
 
